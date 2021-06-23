@@ -14,7 +14,7 @@ object DownloadRepository {
     fun <T> downloadFile(context: Context, downloadData: T) {
         Intent(context, DownloadService::class.java)
             .also {
-                it.putExtra(DOWNLOAD_INFO_List, translateDownloadList(context, downloadData))
+                it.putExtra(DOWNLOAD_INFO_List, translateDownloadList(downloadData))
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.startForegroundService(it)
                 } else {
@@ -23,34 +23,15 @@ object DownloadRepository {
             }
     }
 
-    private fun <T> translateDownloadList(context: Context, downloadData: T): ArrayList<DownloadInfo>{
-        val downloadInfoList: ArrayList<DownloadInfo> = arrayListOf()
-        //簡單工廠
+    private fun <T> translateDownloadList(downloadData: T): ArrayList<DownloadInfo>{
+        var downloadInfoList: ArrayList<DownloadInfo> = arrayListOf()
+        //工廠
         when (downloadData) {
             is String -> {
-                val cw = ContextWrapper(context)
-                val directory = cw.getDir(DOWNLOAD_DIR_NAME, AppCompatActivity.MODE_PRIVATE)
-                if (!downloadData.contains("/")) throw IllegalArgumentException("Not Complete Url")
-                val fileName = downloadData.split("/").last()
-                val downloadInfo = DownloadInfo(
-                    File(directory, fileName).absolutePath,
-                    downloadData
-                )
-                downloadInfoList.add(downloadInfo)
+                downloadInfoList = String2DownloadInfoListTranslator.translate(downloadData)
             }
             is List<*> -> {
-                for (string in downloadData){
-                    if (string !is String) throw IllegalArgumentException("List<String> Only")
-
-                    val cw = ContextWrapper(context)
-                    val directory = cw.getDir(DOWNLOAD_DIR_NAME, AppCompatActivity.MODE_PRIVATE)
-                    val fileName = string.split("/").last()
-                    val downloadInfo = DownloadInfo(
-                        File(directory, fileName).absolutePath,
-                        string
-                    )
-                    downloadInfoList.add(downloadInfo)
-                }
+                downloadInfoList = List2DownloadInfoListTranslator.translate(downloadData)
             }
             is DownloadInfo -> {
                 if (downloadData == DownloadInfo.empty) throw IllegalArgumentException("Empty DownloadInfo")

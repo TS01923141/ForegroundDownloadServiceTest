@@ -9,7 +9,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        //實驗簡單工廠
         val list : ArrayList<String> = arrayListOf()
         list.add("http://moi.kcwu.csie.org/MOI_OSM_Taiwan_TOPO_Rudy.map.zip")
         list.add("http://openweathermap.org/img/wn/02d@2x.png")
