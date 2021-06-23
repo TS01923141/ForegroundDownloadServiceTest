@@ -9,4 +9,8 @@ data class DownloadInfo(
     val filePath: String,
     val url: String,
     val upZip: Boolean = false
-): Serializable
+): Serializable {
+    companion object {
+        val empty = DownloadInfo("","")
+    }
+}
