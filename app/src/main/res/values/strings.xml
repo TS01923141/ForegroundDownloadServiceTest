@@ -3,4 +3,5 @@
     <string name="downloading">downloading</string>
     <string name="download_succeed">download succeed</string>
     <string name="download_failed">download failed</string>
+    <string name="file_unzipping">file unzipping</string>
 </resources>

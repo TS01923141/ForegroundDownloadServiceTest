@@ -2,25 +2,25 @@ package com.example.foregrounddownloadservicetest.module
 
 import android.app.*
 import android.content.Context
-import android.content.Context.NOTIFICATION_SERVICE
-import android.content.Intent
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.foregrounddownloadservicetest.R
-import com.example.foregrounddownloadservicetest.module.DownloadInfo
 import com.example.foregrounddownloadservicetest.module.retrofit.DownloadFileRepository
 import okhttp3.ResponseBody
 import java.io.*
+import java.lang.Exception
+import java.net.SocketException
 import java.util.*
+import kotlin.math.abs
 
-private const val TAG = "DownloadRepository"
+private const val TAG = "DownloadTask"
 private const val CHANNEL_ID = "DownloadRepositoryChannel"
+const val SUCCEED = 100
+const val FAILED = -1
+const val UNZIP = 101
 
-class DownloadTask(
-    private val context: Context,
-    private val downloadInfo: DownloadInfo
-) : Subject {
+class DownloadTask(private val context: Context, private val downloadInfo: DownloadInfo) : Subject {
     private var notificationManager: NotificationManager =
         context.getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager
     var notificationId: Int = getUnUsedNotificationId()
@@ -31,7 +31,10 @@ class DownloadTask(
     private var downloadSize: Long = 0
     private var progress: Int = 0
 
-    constructor(context: Context, downloadInfo: DownloadInfo, notificationId: Int) : this(context, downloadInfo) {
+    constructor(context: Context, downloadInfo: DownloadInfo, notificationId: Int) : this(
+        context,
+        downloadInfo
+    ) {
         this.notificationId = notificationId
     }
 
@@ -49,27 +52,52 @@ class DownloadTask(
         observerList.remove(observer)
     }
 
-    override fun notifyObservers(notificationId: Int) {
-        observerList.forEach { it.update(notificationId) }
+    override fun notifyObservers(notificationId: Int, result: String) {
+        observerList.forEach { it.update(notificationId, result) }
     }
 
     suspend fun startDownload() {
         Log.d(TAG, "startDownload: ")
-        val response = DownloadFileRepository.downloadFile(downloadInfo.url)
-        if (response != null) {
-            writeResponseBodyToDisk(response)
-//            TODO("檢查檔案下載是否完全")
-////            if (downloadInfo.upZip)
-//            TODO("解壓縮")
+        try {
+            val response = DownloadFileRepository.downloadFile(downloadInfo.url)
+            if (response != null) {
+                writeResponseBodyToDisk(response)
+                //檢查檔案下載是否完全
+                if (FileController.compareFileSizeWithUrl(
+                        downloadInfo.filePath,
+                        downloadInfo.url
+                    )
+                ) {
+                    //解壓縮
+                    if (downloadInfo.upZip) {
+                        try {
+                            progress = UNZIP
+                            notificationUpdate()
+                            Log.d(TAG, "startDownload: unZipStart")
+                            FileController.UnZipFolder(
+                                downloadInfo.filePath,
+                                File(downloadInfo.filePath).parent!!
+                            )
+                            Log.d(TAG, "startDownload: unZipFinish")
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            progress = FAILED
+                        }
+                    }
+                } else {
+                    progress = FAILED
+                }
+            }
+        }catch (e: Exception){
+            e.printStackTrace()
         }
-        if (progress != 100) {
-            progress = -1
-            notificationUpdate()
-        }
+        if (progress == UNZIP) progress = SUCCEED
+        if (progress != SUCCEED) progress = FAILED
+        notificationUpdate()
     }
 
     private fun getUnUsedNotificationId(): Int {
-        val notificationId = Random().nextInt()
+        val notificationId = abs(Random().nextInt())
         return if (!checkNotificationIdUnUsed(notificationId)) {
             notificationId
         } else {
@@ -89,29 +117,30 @@ class DownloadTask(
     }
 
     private fun notificationUpdate() {
-        Log.d(TAG, "notificationUpdate: progress: " + progress)
+        Log.d(TAG, "notificationUpdate: progress: $progress")
         when (progress) {
-            100 -> {
+            SUCCEED -> {
                 //succeed
                 notificationBuilder
                     .setContentText(context.getString(R.string.download_succeed))
                     .setProgress(100, 100, false)
                     .setAutoCancel(true)
                     .setOngoing(false)
-//                .setContentIntent(getSuccessIntent(position))
-//                    .setDeleteIntent(getDeleteIntent(position))
                 Log.d(TAG, "notificationUpdate: succeed notify")
             }
-            -1 -> {
+            FAILED -> {
                 //failed
                 notificationBuilder
                     .setContentText(context.getString(R.string.download_failed))
                     .setProgress(0, 0, false)
                     .setAutoCancel(true)
                     .setOngoing(false)
-//                    .setContentIntent(getFailureIntent(position))
-//                    .setDeleteIntent(getDeleteIntent(position))
                 Log.d(TAG, "notificationUpdate: failed notify")
+            }
+            UNZIP -> {
+                //zip
+                notificationBuilder.setProgress(0, 0, false)
+                    .setContentText(context.getString(R.string.file_unzipping))
             }
             else -> {
                 //update
@@ -119,13 +148,19 @@ class DownloadTask(
             }
         }
         notificationManager.notify(notificationId, notificationBuilder.build())
-        if (progress == 100 || progress == -1) notifyObservers(notificationId)
+
+        if (progress == SUCCEED) notifyObservers(
+            notificationId,
+            context.getString(R.string.download_succeed)
+        )
+        if (progress == FAILED) notifyObservers(
+            notificationId,
+            context.getString(R.string.download_failed)
+        )
     }
 
     private fun settingNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//            val notificationManager =
-//                context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             //關閉震動
             val channel = NotificationChannel(
                 CHANNEL_ID,
@@ -149,24 +184,6 @@ class DownloadTask(
             .setWhen(System.currentTimeMillis())
     }
 
-//    private fun getDeleteIntent(position: Int): PendingIntent? {
-//        val intent = Intent()
-//        intent.action = BackgroundDownloadService.ACTION_DOWNLOAD_PROGRESS_DELETE_BROADCAST
-//        return PendingIntent.getBroadcast(context, position, intent, PendingIntent.FLAG_CANCEL_CURRENT)
-//    }
-//
-//    private fun getFailureIntent(position: Int): PendingIntent? {
-//        val intent = Intent()
-//        intent.action = BackgroundDownloadService.ACTION_DOWNLOAD_PROGRESS_DELETE_BROADCAST
-//        return PendingIntent.getBroadcast(context, position, intent, PendingIntent.FLAG_ONE_SHOT)
-//    }
-//
-//    private fun getSuccessIntent(position: Int): PendingIntent? {
-//        val intent = Intent()
-//        intent.action = BackgroundDownloadService.ACTION_DOWNLOAD_PROGRESS_COMPLETED_BROADCAST
-//        return PendingIntent.getBroadcast(context, position, intent, PendingIntent.FLAG_ONE_SHOT)
-//    }
-
     //--
 
     private fun writeResponseBodyToDisk(body: ResponseBody): Boolean {
@@ -188,14 +205,15 @@ class DownloadTask(
                 }
                 outputStream.write(fileReader, 0, read)
                 downloadSize += read.toLong()
-//                Log.d(TAG, "writeResponseBodyToDisk: file download: $downloadSize of $fileSize")
-//                Log.d(TAG, "writeResponseBodyToDisk: download percent: " + (1f * downloadSize / fileSize * 100))
                 updateProgress()
             }
             outputStream.flush()
             downloadSize == fileSize
         } catch (e: IOException) {
-            Log.e(TAG, "writeResponseBodyToDisk: e: " + e.message)
+            e.printStackTrace()
+            return false
+        } catch (e: SocketException) {
+            e.printStackTrace()
             return false
         } finally {
             inputStream?.close()
@@ -207,8 +225,8 @@ class DownloadTask(
     private fun updateProgress() {
         if (downloadSize >= fileSize * (progress + 1) / 100) {
             progress = (1f * downloadSize / fileSize * 100).toInt()
-            Log.d(TAG, "updateProgress: progress: $progress")
-            notificationUpdate()
+//            Log.d(TAG, "updateProgress: progress: $progress")
+            if (progress != SUCCEED) notificationUpdate()
         }
     }
 }

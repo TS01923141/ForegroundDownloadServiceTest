@@ -1,26 +1,28 @@
 package com.example.foregrounddownloadservicetest.module
 
 import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
-import java.io.File
+import com.example.foregrounddownloadservicetest.module.DownloadService.Companion.DOWNLOAD_INFO_LIST
+import com.example.foregrounddownloadservicetest.module.DownloadService.Companion.DOWNLOAD_REQUEST_CLASS
 import java.lang.IllegalArgumentException
 import java.util.*
 
 object DownloadRepository {
 
-    fun <T> downloadFile(context: Context, downloadData: T) {
-        Intent(context, DownloadService::class.java)
-            .also {
-                it.putExtra(DOWNLOAD_INFO_List, translateDownloadList(downloadData))
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(it)
-                } else {
-                    context.startService(it)
+    fun <T> downloadFile(context: Context, className: String, downloadData: T) {
+        if (NetworkHandler.checkInternet(context)) {
+            Intent(context, DownloadService::class.java)
+                .also {
+                    it.putExtra(DOWNLOAD_INFO_LIST, translateDownloadList(downloadData))
+                    it.putExtra(DOWNLOAD_REQUEST_CLASS, className)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        context.startForegroundService(it)
+                    } else {
+                        context.startService(it)
+                    }
                 }
-            }
+        }
     }
 
     private fun <T> translateDownloadList(downloadData: T): ArrayList<DownloadInfo>{
