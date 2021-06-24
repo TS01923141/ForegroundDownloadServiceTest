@@ -31,9 +31,9 @@ class MainActivity : AppCompatActivity() {
         //--test1
 
         val list: ArrayList<String> = arrayListOf()
-//        list.add("http://moi.kcwu.csie.org/MOI_OSM_Taiwan_TOPO_Rudy.map.zip")
+        list.add("http://moi.kcwu.csie.org/MOI_OSM_Taiwan_TOPO_Rudy.map.zip")
         list.add("http://openweathermap.org/img/wn/02d@2x.png")
-        DownloadRepository.downloadFile(this, javaClass.name, list)
+        DownloadRepository.downloadFile(this, javaClass.name + "_1", list)
 
         //--test2
 
@@ -44,7 +44,7 @@ class MainActivity : AppCompatActivity() {
             File(directory, "MOI_OSM_Taiwan_TOPO_Rudy.zip").absolutePath,
             "http://moi.kcwu.csie.org/MOI_OSM_Taiwan_TOPO_Rudy.map.zip", true
         )
-        DownloadRepository.downloadFile(this, javaClass.name, downloadInfo)
+        DownloadRepository.downloadFile(this, javaClass.name + "_2", downloadInfo)
     }
 
     override fun onDestroy() {
@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity() {
             Log.d(TAG, "DownloadResultReceiver onReceive: ")
             if (intent == null) return
             val requestClass = intent.getStringExtra(DownloadService.DOWNLOAD_REQUEST_CLASS)
-            if (requestClass == this@MainActivity.javaClass.name) {
+            if (requestClass != null && requestClass.split("_").first() == this@MainActivity.javaClass.name) {
                 val resultText =
                     when (val result = intent.getIntExtra(DownloadService.DOWNLOAD_PROGRESS, 0)) {
                         FAILED ->
@@ -69,7 +69,8 @@ class MainActivity : AppCompatActivity() {
                         else ->
                             "progress: $result"
                     }
-                binding.textViewMain.text = resultText
+                val taskName = requestClass!!.split("_").last()
+                binding.textViewMain.text = "task: $taskName: $resultText"
             }
         }
     }
