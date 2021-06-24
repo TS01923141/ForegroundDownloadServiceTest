@@ -1,5 +1,5 @@
 package com.example.foregrounddownloadservicetest.module
 
 interface Observer {
-    fun update(notificationId: Int, result: String)
+    fun update(notificationId: Int, result: Int)
 }

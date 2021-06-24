@@ -52,7 +52,7 @@ class DownloadTask(private val context: Context, private val downloadInfo: Downl
         observerList.remove(observer)
     }
 
-    override fun notifyObservers(notificationId: Int, result: String) {
+    override fun notifyObservers(notificationId: Int, result: Int) {
         observerList.forEach { it.update(notificationId, result) }
     }
 
@@ -73,12 +73,10 @@ class DownloadTask(private val context: Context, private val downloadInfo: Downl
                         try {
                             progress = UNZIP
                             notificationUpdate()
-                            Log.d(TAG, "startDownload: unZipStart")
                             FileController.UnZipFolder(
                                 downloadInfo.filePath,
                                 File(downloadInfo.filePath).parent!!
                             )
-                            Log.d(TAG, "startDownload: unZipFinish")
                         } catch (e: Exception) {
                             e.printStackTrace()
                             progress = FAILED
@@ -148,15 +146,7 @@ class DownloadTask(private val context: Context, private val downloadInfo: Downl
             }
         }
         notificationManager.notify(notificationId, notificationBuilder.build())
-
-        if (progress == SUCCEED) notifyObservers(
-            notificationId,
-            context.getString(R.string.download_succeed)
-        )
-        if (progress == FAILED) notifyObservers(
-            notificationId,
-            context.getString(R.string.download_failed)
-        )
+        notifyObservers(notificationId, progress)
     }
 
     private fun settingNotificationChannel() {

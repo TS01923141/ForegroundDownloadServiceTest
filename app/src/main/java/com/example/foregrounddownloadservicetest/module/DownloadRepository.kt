@@ -3,19 +3,17 @@ package com.example.foregrounddownloadservicetest.module
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import com.example.foregrounddownloadservicetest.module.DownloadService.Companion.DOWNLOAD_INFO_LIST
-import com.example.foregrounddownloadservicetest.module.DownloadService.Companion.DOWNLOAD_REQUEST_CLASS
+import com.example.foregrounddownloadservicetest.module.DownloadService.Companion.DOWNLOAD_TASK_INFO
 import java.lang.IllegalArgumentException
-import java.util.*
 
+private const val TAG = "DownloadRepository"
 object DownloadRepository {
 
     fun <T> downloadFile(context: Context, className: String, downloadData: T) {
         if (NetworkHandler.checkInternet(context)) {
             Intent(context, DownloadService::class.java)
                 .also {
-                    it.putExtra(DOWNLOAD_INFO_LIST, translateDownloadList(downloadData))
-                    it.putExtra(DOWNLOAD_REQUEST_CLASS, className)
+                    it.putExtra(DOWNLOAD_TASK_INFO, translateDownloadList(className, downloadData))
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         context.startForegroundService(it)
                     } else {
@@ -25,24 +23,23 @@ object DownloadRepository {
         }
     }
 
-    private fun <T> translateDownloadList(downloadData: T): ArrayList<DownloadInfo>{
-        var downloadInfoList: ArrayList<DownloadInfo> = arrayListOf()
+    private fun <T> translateDownloadList(className: String, downloadData: T): DownloadTaskInfo{
+        var downloadTaskInfo = DownloadTaskInfo(arrayListOf(), className)
         //工廠
         when (downloadData) {
             is String -> {
-                downloadInfoList = String2DownloadInfoListTranslator.translate(downloadData)
+                downloadTaskInfo.downloadInfoList.addAll(String2DownloadInfoListTranslator.translate(downloadData))
             }
             is List<*> -> {
-                downloadInfoList = List2DownloadInfoListTranslator.translate(downloadData)
+                downloadTaskInfo.downloadInfoList.addAll(List2DownloadInfoListTranslator.translate(downloadData))
             }
             is DownloadInfo -> {
-                if (downloadData == DownloadInfo.empty) throw IllegalArgumentException("Empty DownloadInfo")
-                downloadInfoList.add(downloadData)
+                downloadTaskInfo.downloadInfoList.addAll(DownloadInfo2DownloadInfoListTranslator.translate(downloadData))
             }
             else -> {
                 throw IllegalArgumentException("Unknown type")
             }
         }
-        return downloadInfoList
+        return downloadTaskInfo
     }
 }

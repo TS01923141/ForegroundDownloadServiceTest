@@ -6,18 +6,14 @@ import android.os.Bundle
 import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.foregrounddownloadservicetest.databinding.ActivityMainBinding
-import com.example.foregrounddownloadservicetest.module.DOWNLOAD_DIR_NAME
-import com.example.foregrounddownloadservicetest.module.DownloadInfo
-import com.example.foregrounddownloadservicetest.module.DownloadRepository
-import com.example.foregrounddownloadservicetest.module.DownloadService
+import com.example.foregrounddownloadservicetest.module.*
 import java.io.File
 
 private const val TAG = "MainActivity"
+
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
-    private var downloadIdList : MutableList<Int> = arrayListOf()
-    private val startDownloadReceiver = StartDownloadReceiver()
-    private val downloadCompleteReceiver = DownloadCompleteReceiver()
+    private val downloadCompleteReceiver = DownloadStatusUpdateReceiver()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,12 +24,9 @@ class MainActivity : AppCompatActivity() {
         //--
 
         LocalBroadcastManager.getInstance(this).registerReceiver(
-            startDownloadReceiver,
-            IntentFilter(DownloadService.DOWNLOAD_START))
-
-        LocalBroadcastManager.getInstance(this).registerReceiver(
             downloadCompleteReceiver,
-            IntentFilter(DownloadService.DOWNLOAD_COMPLETE))
+            IntentFilter(DownloadService.DOWNLOAD_STATUS_UPDATE)
+        )
 
         //--test1
 
@@ -55,44 +48,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(startDownloadReceiver)
         LocalBroadcastManager.getInstance(this).unregisterReceiver(downloadCompleteReceiver)
         super.onDestroy()
     }
 
-    private inner class StartDownloadReceiver(): BroadcastReceiver(){
-        override fun onReceive(context: Context?, intent: Intent?) {
-            Log.d(TAG, "StartDownloadReceiver onReceive: ")
-            if (intent == null) return
-            val className = intent.getStringExtra(DownloadService.DOWNLOAD_REQUEST_CLASS)
-            Log.d(TAG, "onReceive: className: $className")
-            Log.d(TAG, "onReceive: this.javaClass.name: " + this@MainActivity.javaClass.name)
-            Log.d(TAG, "onReceive: this.className == receiver.className: " + (className == this@MainActivity.javaClass.name))
-            if (!className.isNullOrEmpty() && className == this@MainActivity.javaClass.name){
-                downloadIdList.add(intent.getIntExtra(DownloadService.DOWNLOAD_TASK_NOTIFICATION_ID , -1))
-                Log.d(TAG, "onReceive: downloadId: $downloadIdList")
-            }
-        }
-    }
-
-    private inner class DownloadCompleteReceiver() : BroadcastReceiver() {
+    private inner class DownloadStatusUpdateReceiver() : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             Log.d(TAG, "DownloadResultReceiver onReceive: ")
             if (intent == null) return
-            val downloadCompleteId = intent.getIntExtra(DownloadService.DOWNLOAD_TASK_NOTIFICATION_ID, -1)
-            Log.d(TAG, "onReceive: downloadCompleteId: $downloadCompleteId")
-            if (downloadCompleteId != -1) {
-                for (downloadId in downloadIdList) {
-                    Log.d(TAG, "onReceive: downloadId: " + downloadId)
-                    Log.d(TAG, "onReceive: (downloadCompleteId == downloadId): " + (downloadCompleteId == downloadId))
-                    if (downloadCompleteId == downloadId) {
-                        val result = intent.getStringExtra(DownloadService.DOWNLOAD_RESULT)
-                        Log.d(TAG, "onReceive: downloadCompleted: $downloadCompleteId, result: $result")
-                        binding.textViewMain.text = result
-                        downloadIdList.remove(downloadId)
-                        break
+            val requestClass = intent.getStringExtra(DownloadService.DOWNLOAD_REQUEST_CLASS)
+            if (requestClass == this@MainActivity.javaClass.name) {
+                val resultText =
+                    when (val result = intent.getIntExtra(DownloadService.DOWNLOAD_PROGRESS, 0)) {
+                        FAILED ->
+                            getString(R.string.download_failed)
+                        SUCCEED ->
+                            getString(R.string.download_succeed)
+                        UNZIP ->
+                            getString(R.string.file_unzipping)
+                        else ->
+                            "progress: $result"
                     }
-                }
+                binding.textViewMain.text = resultText
             }
         }
     }
