@@ -13,7 +13,7 @@ import java.io.*
 
 private const val TAG = "DownloadService"
 
-class DownloadService : Service(), Observer {
+class DownloadService : Service(), DownloadObserver {
     //下載任務佇列，用來判斷是否有位下載任務跟是否下載完成
     private var downloadInfoMap: MutableMap<Int, ArrayList<DownloadInfo>> = mutableMapOf()
 

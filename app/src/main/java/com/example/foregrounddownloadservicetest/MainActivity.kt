@@ -10,7 +10,6 @@ import com.example.foregrounddownloadservicetest.module.*
 import java.io.File
 
 private const val TAG = "MainActivity"
-
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val downloadCompleteReceiver = DownloadStatusUpdateReceiver()

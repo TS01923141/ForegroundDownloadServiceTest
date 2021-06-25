@@ -1,15 +1,15 @@
 package com.example.foregrounddownloadservicetest.module
 
 import android.util.Log
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.io.IOException
+import okhttp3.ResponseBody
+import java.io.*
+import java.net.SocketException
 import java.net.URL
 import java.util.zip.ZipInputStream
 
 private const val TAG = "FileController"
 object FileController {
+
     //從url取得檔案大小
     @Throws(IOException::class)
     fun getUrlFileSize(fileUrl: String?): Int {
@@ -29,6 +29,46 @@ object FileController {
         return urlFileSize * 1.05 >= file.length() && urlFileSize * 0.95 <= file.length()
     }
 
+    fun writeResponseBodyToDisk(fileWriteObserver: FileWriteObserver?, filePath: String, body: ResponseBody): Boolean {
+        var downloadProgress = 0
+        var downloadSize: Long = 0
+        val downloadFile = File(filePath)
+        if (downloadFile.parentFile != null && !downloadFile.parentFile.exists()) {
+            downloadFile.parentFile.mkdirs()
+        }
+        var inputStream: InputStream? = null
+        var outputStream: OutputStream? = null
+        try {
+            val fileReader = ByteArray(4096)
+            val fileSize = body.contentLength()
+            inputStream = body.byteStream()
+            outputStream = FileOutputStream(downloadFile.absolutePath)
+            while (true) {
+                val read = inputStream.read(fileReader)
+                if (read == -1) {
+                    break
+                }
+                outputStream.write(fileReader, 0, read)
+                downloadSize += read.toLong()
+                if (fileWriteObserver != null && downloadSize >= fileSize * (downloadProgress + 1) / 100) {
+                    downloadProgress = calculateProgress(downloadSize, fileSize)
+                    fileWriteObserver.updateFileWriteProgress(downloadProgress)
+                }
+            }
+            outputStream.flush()
+        } catch (e: IOException) {
+            e.printStackTrace()
+            return false
+        } catch (e: SocketException) {
+            e.printStackTrace()
+            return false
+        } finally {
+            inputStream?.close()
+            outputStream?.close()
+            return true
+        }
+    }
+
     /**
      * 解压zip到指定的路径
      *
@@ -38,13 +78,7 @@ object FileController {
      */
     fun UnZipFolder(zipFileString: String, outPathString: String) {
         Log.d(TAG, "UnZipFolder: zipFileString: $zipFileString")
-//        var totalZipCount = 0
-//        var currentZipCount = 0
         var inZip = ZipInputStream(FileInputStream(zipFileString))
-//        while (inZip.nextEntry != null) {
-//            totalZipCount++
-//        }
-//        inZip = ZipInputStream(FileInputStream(zipFileString))
         var zipEntry = inZip.nextEntry
         var szName = ""
         while (zipEntry != null) {
@@ -71,13 +105,13 @@ object FileController {
                     out.flush()
                 }
                 out.close()
-//                currentZipCount++
-//                val unZipProgressPercent =
-//                    (currentZipCount.toDouble() / totalZipCount * 100).toInt()
-//                Log.d(TAG, "UnZipFolder: unZip progress: $unZipProgressPercent")
             }
             zipEntry = inZip.nextEntry
         }
         inZip.close()
+    }
+
+    private fun calculateProgress(downloadSize: Long, fileSize: Long): Int{
+        return (1f * downloadSize / fileSize * 100).toInt()
     }
 }
