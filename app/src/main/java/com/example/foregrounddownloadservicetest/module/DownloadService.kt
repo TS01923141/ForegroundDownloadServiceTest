@@ -71,7 +71,7 @@ class DownloadService : Service(), DownloadObserver {
         downloadInfoMap[notificationId]!!.removeFirstOrNull()
         //佇列內還有未下載的項目
         if (downloadInfoMap[notificationId]!!.isNotEmpty()) {
-            if (NetworkHandler.checkInternet(this)) {
+//            if (NetworkHandler.checkInternet(this)) {
                 //有網路，下載下一個檔案
                 CoroutineScope(Dispatchers.IO).launch {
                     val downloadTask =
@@ -84,10 +84,10 @@ class DownloadService : Service(), DownloadObserver {
                     startForeground(notificationId, downloadTask.notificationBuilder.build())
                     downloadTask.startDownload()
                 }
-            } else {
-                //無網路，通知下載失敗並清空資料結束service
-                update(notificationId, FAILED)
-            }
+//            } else {
+//                //無網路，通知下載失敗並清空資料結束service
+//                update(notificationId, FAILED)
+//            }
         } else {
             //佇列下載完畢清空
             downloadInfoMap.remove(notificationId)

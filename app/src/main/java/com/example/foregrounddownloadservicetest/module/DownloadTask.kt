@@ -8,6 +8,7 @@ import com.example.foregrounddownloadservicetest.R
 import com.example.foregrounddownloadservicetest.module.retrofit.DownloadFileRepository
 import java.io.*
 import java.lang.Exception
+import javax.inject.Inject
 
 private const val TAG = "DownloadTask"
 const val SUCCEED = 100
@@ -16,6 +17,8 @@ const val UNZIP = 101
 
 class DownloadTask(private val context: Context, private val downloadInfo: DownloadInfo) : DownloadSubject,
     FileWriteObserver {
+    @Inject
+    internal lateinit var downloadFileRepository : DownloadFileRepository
     private var notificationManager: NotificationManager =
         context.getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager
     var notificationId: Int = NotificationController.getUnUsedNotificationId(notificationManager)
@@ -54,7 +57,6 @@ class DownloadTask(private val context: Context, private val downloadInfo: Downl
     }
 
     //handle file write observer
-
     override fun updateFileWriteProgress(progress: Int) {
         this.progress = progress
         if (progress != SUCCEED) notificationUpdate()
@@ -65,9 +67,8 @@ class DownloadTask(private val context: Context, private val downloadInfo: Downl
     suspend fun startDownload() {
         Log.d(TAG, "startDownload: ")
         try {
-            val response = DownloadFileRepository.downloadFile(downloadInfo.url)
-            if (response != null) {
-                FileController.writeResponseBodyToDisk(this, downloadInfo.filePath, response)
+            val response = downloadFileRepository.downloadFile(downloadInfo.url)
+            if (response != null && FileController.writeResponseBodyToDisk(this, downloadInfo.filePath, response)) {
                 //檢查檔案下載是否完全
                 if (FileController.compareFileSizeWithUrl(
                         downloadInfo.filePath,
@@ -79,10 +80,13 @@ class DownloadTask(private val context: Context, private val downloadInfo: Downl
                         try {
                             progress = UNZIP
                             notificationUpdate()
-                            FileController.UnZipFolder(
+                            val unZipFile = File(downloadInfo.filePath)
+                            FileController.unZipFolder(
                                 downloadInfo.filePath,
-                                File(downloadInfo.filePath).parent!!
+                                unZipFile.parent!!
                             )
+                            //unzip completed, delete zip file
+                            unZipFile.delete()
                         } catch (e: Exception) {
                             e.printStackTrace()
                             progress = FAILED

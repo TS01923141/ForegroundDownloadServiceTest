@@ -7,12 +7,19 @@ import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.foregrounddownloadservicetest.databinding.ActivityMainBinding
 import com.example.foregrounddownloadservicetest.module.*
+import com.example.foregrounddownloadservicetest.module.retrofit.DownloadFileRepository
+import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
+import javax.inject.Inject
 
 private const val TAG = "MainActivity"
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val downloadCompleteReceiver = DownloadStatusUpdateReceiver()
+
+    @Inject
+    internal lateinit var downloadFileRepository : DownloadFileRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

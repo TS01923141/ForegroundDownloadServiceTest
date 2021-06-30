@@ -10,7 +10,6 @@ private const val TAG = "DownloadRepository"
 object DownloadRepository {
 
     fun <T> downloadFile(context: Context, className: String, downloadData: T) {
-        if (NetworkHandler.checkInternet(context)) {
             Intent(context, DownloadService::class.java)
                 .also {
                     it.putExtra(DOWNLOAD_TASK_INFO, translateDownloadList(className, downloadData))
@@ -20,7 +19,6 @@ object DownloadRepository {
                         context.startService(it)
                     }
                 }
-        }
     }
 
     private fun <T> translateDownloadList(className: String, downloadData: T): DownloadTaskInfo{

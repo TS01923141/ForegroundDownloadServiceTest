@@ -76,7 +76,7 @@ object FileController {
      * @param outPathString 要解压缩路径
      * @throws Exception
      */
-    fun UnZipFolder(zipFileString: String, outPathString: String) {
+    fun unZipFolder(zipFileString: String, outPathString: String) {
         Log.d(TAG, "UnZipFolder: zipFileString: $zipFileString")
         var inZip = ZipInputStream(FileInputStream(zipFileString))
         var zipEntry = inZip.nextEntry

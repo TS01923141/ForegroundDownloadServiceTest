@@ -18,13 +18,18 @@ package com.example.foregrounddownloadservicetest.module
 import android.content.Context
 import android.net.ConnectivityManager
 import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object NetworkHandler {
+@Singleton
+class NetworkHandler
+@Inject constructor(@ApplicationContext private val context: Context) {
     /**
      * @param context
      * @return true: 有網路 , false: 沒網路
      */
-    fun checkInternet(context: Context): Boolean {
+    fun checkInternet(): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         return try {
             val activeNetwork = cm.activeNetworkInfo
