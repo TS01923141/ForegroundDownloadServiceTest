@@ -1,10 +1,6 @@
 package com.example.foregrounddownloadservicetest
 
-import android.util.Log
-import com.example.foregrounddownloadservicetest.module.NetworkHandler
 import com.example.foregrounddownloadservicetest.module.retrofit.DownloadFileRepository
-import com.example.foregrounddownloadservicetest.module.retrofit.DownloadFileRetrofit
-import com.example.foregrounddownloadservicetest.module.retrofit.DownloadFileService
 import com.jakewharton.retrofit2.adapter.kotlin.coroutines.CoroutineCallAdapterFactory
 import dagger.Module
 import dagger.Provides
@@ -27,17 +23,15 @@ class ApplicationModule {
     @Provides
     @Singleton
     fun provideRetrofit(): Retrofit {
-        Log.d(TAG, "provideRetrofit: ")
         return Retrofit.Builder()
-            .client(createClient())
             .baseUrl(BASE_URL)
+            .client(createClient())
             .addConverterFactory(GsonConverterFactory.create())
             .addCallAdapterFactory(CoroutineCallAdapterFactory())
             .build()
     }
 
     private fun createClient(): OkHttpClient {
-        Log.d(TAG, "createClient: ")
         val okHttpClientBuilder: OkHttpClient.Builder = OkHttpClient.Builder()
             .readTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(90, TimeUnit.SECONDS)
@@ -53,7 +47,6 @@ class ApplicationModule {
      * @return Dispatcher
      */
     private fun initDispatcher(): Dispatcher {
-        Log.d(TAG, "initDispatcher: ")
         val dispatcher = Dispatcher()
         //最多需求數
         dispatcher.maxRequests = 64
@@ -62,10 +55,7 @@ class ApplicationModule {
         return dispatcher
     }
 
-    @Provides
-    @Singleton
-    fun provideDownloadFileRepository(dataSource: DownloadFileRepository.Network): DownloadFileRepository {
-        Log.d(TAG, "provideDownloadFileRepository: ")
-        return dataSource
-    }
+//    @Provides
+//    @Singleton
+//    fun provideDownloadFileRepository(dataSource: DownloadFileRepository.Network): DownloadFileRepository = dataSource
 }

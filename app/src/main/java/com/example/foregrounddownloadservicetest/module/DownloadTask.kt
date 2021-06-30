@@ -15,10 +15,8 @@ const val SUCCEED = 100
 const val FAILED = -1
 const val UNZIP = 101
 
-class DownloadTask(private val context: Context, private val downloadInfo: DownloadInfo) : DownloadSubject,
+class DownloadTask(private val context: Context, private val downloadFileRepository : DownloadFileRepository, private val downloadInfo: DownloadInfo) : DownloadSubject,
     FileWriteObserver {
-    @Inject
-    internal lateinit var downloadFileRepository : DownloadFileRepository
     private var notificationManager: NotificationManager =
         context.getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager
     var notificationId: Int = NotificationController.getUnUsedNotificationId(notificationManager)
@@ -27,8 +25,9 @@ class DownloadTask(private val context: Context, private val downloadInfo: Downl
     var notificationBuilder: NotificationCompat.Builder
     private var progress: Int = 0
 
-    constructor(context: Context, downloadInfo: DownloadInfo, notificationId: Int) : this(
+    constructor(context: Context, downloadFileRepository : DownloadFileRepository, downloadInfo: DownloadInfo, notificationId: Int) : this(
         context,
+        downloadFileRepository,
         downloadInfo
     ) {
         this.notificationId = notificationId

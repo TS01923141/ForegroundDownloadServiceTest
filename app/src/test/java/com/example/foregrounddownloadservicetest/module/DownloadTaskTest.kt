@@ -66,9 +66,8 @@ class DownloadTaskTest : UnitTest() {
         } returns Unit
         every { notificationManager.activeNotifications } returns emptyArray()
         every { context.getSystemService(Service.NOTIFICATION_SERVICE) } returns notificationManager
-        downloadTask = DownloadTask(context, downloadInfo, notificationId)
+        downloadTask = DownloadTask(context, downloadFileRepository, downloadInfo, notificationId)
         downloadTask.notificationBuilder = notificationBuilder
-        downloadTask.downloadFileRepository = downloadFileRepository
     }
 
     @Test

@@ -6,22 +6,18 @@ import java.lang.Exception
 import javax.inject.Inject
 import javax.inject.Singleton
 
-interface DownloadFileRepository {
-    fun downloadFile(fileUrl: String): ResponseBody?
-
-    class Network @Inject constructor(
-        private val networkHandler: NetworkHandler,
-        private val service: DownloadFileService): DownloadFileRepository {
-        override fun downloadFile(fileUrl: String): ResponseBody? {
-            if (!networkHandler.checkInternet()) return null
-            return try {
-                val response = service.downloadFile(fileUrl).execute()
-                if (response.isSuccessful) response.body()
-                else null
-            } catch (e: Exception) {
-                e.printStackTrace()
-                null
-            }
+class DownloadFileRepository @Inject constructor(
+    private val networkHandler: NetworkHandler,
+    private val service: DownloadFileService) {
+    fun downloadFile(fileUrl: String): ResponseBody? {
+        if (!networkHandler.checkInternet()) return null
+        return try {
+            val response = service.downloadFile(fileUrl).execute()
+            if (response.isSuccessful) response.body()
+            else null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 }

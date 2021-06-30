@@ -6,19 +6,25 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.example.foregrounddownloadservicetest.module.retrofit.DownloadFileRepository
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.*
+import javax.inject.Inject
 
 private const val TAG = "DownloadService"
-
+@AndroidEntryPoint
 class DownloadService : Service(), DownloadObserver {
     //下載任務佇列，用來判斷是否有位下載任務跟是否下載完成
     private var downloadInfoMap: MutableMap<Int, ArrayList<DownloadInfo>> = mutableMapOf()
 
     //下載任務資訊，用來作為刪除檔案、寄通知的依據
     private var downloadTaskInfoMap: MutableMap<Int, DownloadTaskInfo> = mutableMapOf()
+
+    @Inject
+    internal lateinit var downloadFileRepository: DownloadFileRepository
 
     companion object {
         const val DOWNLOAD_STATUS_UPDATE = "download_status_update"
@@ -41,7 +47,7 @@ class DownloadService : Service(), DownloadObserver {
             (intent.getSerializableExtra(DOWNLOAD_TASK_INFO) as DownloadTaskInfo)
         if (downloadTaskInfo.downloadInfoList.isNullOrEmpty()) return START_NOT_STICKY
         val downloadTask =
-            DownloadTask(this@DownloadService, downloadTaskInfo.downloadInfoList.first())
+            DownloadTask(this@DownloadService, downloadFileRepository, downloadTaskInfo.downloadInfoList.first())
         downloadTask.registerObserver(this@DownloadService)
         startForeground(downloadTask.notificationId, downloadTask.notificationBuilder.build())
         downloadTaskInfoMap.put(downloadTask.notificationId, downloadTaskInfo)
@@ -77,6 +83,7 @@ class DownloadService : Service(), DownloadObserver {
                     val downloadTask =
                         DownloadTask(
                             this@DownloadService,
+                            downloadFileRepository,
                             downloadInfoMap[notificationId]!!.first(),
                             notificationId
                         )
@@ -122,12 +129,12 @@ class DownloadService : Service(), DownloadObserver {
 
     private fun deleteFiles(notificationId: Int) {
         downloadTaskInfoMap[notificationId]?.downloadInfoList?.forEach {
-            File(it.filePath).also {
-                it.delete()
-                if (it.parentFile != null && it.parentFile.isDirectory && it.parentFile.listFiles()
+            File(it.filePath).also { file ->
+                file.delete()
+                if (file.parentFile != null && file.parentFile.isDirectory && file.parentFile.listFiles()
                         .isEmpty()
                 ) {
-                    it.parentFile.delete()
+                    file.parentFile.delete()
                 }
             }
         }
